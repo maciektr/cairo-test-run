@@ -1,0 +1,7 @@
+[package]
+name = "some"
+version = "1.0.0"
+
+[dependencies]
+
+[cairo-plugin]

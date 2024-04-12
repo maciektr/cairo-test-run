@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  merge_group:
+
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Scarb
+        run: |
+            git clone https://github.com/software-mansion/scarb.git
+            cd scarb
+            git checkout 055a9854905ddc0882fe22a67fe04a9702084601
+            cargo build --release
+            echo "$GITHUB_WORKSPACE/scarb/target/release" >> $GITHUB_PATH
+
+      - name: First example
+        run: |
+            cd first/hello
+            scarb build
+            cat target/dev/hello.sierra.json
+
+      - name: Second example
+        run: |
+            cd second/hello
+            scarb build
