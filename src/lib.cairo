@@ -1,25 +1,11 @@
-fn main() -> u32 {
-    fib(16)
-}
+use core::sha256::compute_sha256_u32_array;
 
-fn fib(mut n: u32) -> u32 {
-    let mut a: u32 = 0;
-    let mut b: u32 = 1;
-    while n != 0 {
-        n = n - 1;
-        let temp = b;
-        b = a + b;
-        a = temp;
-    };
-    a
-}
+#[test]
+fn test_sha256() {
+    let mut input: Array::<u32> = Default::default();
+    input.append('aaaa');
 
-#[cfg(test)]
-mod tests {
-    use super::fib;
-
-    #[test]
-    fn it_works() {
-        assert(fib(16) == 987, 'it works!');
-    }
+    // Test the sha256 syscall computation of the string 'aaaa'.
+    let [res, _, _, _, _, _, _, _,] = compute_sha256_u32_array(input, 0, 0);
+    assert(res == 0x61be55a8, 'Wrong hash value');
 }
