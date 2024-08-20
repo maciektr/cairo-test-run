@@ -9,24 +9,37 @@ on:
 
 
 jobs:
-  prepare:
+  current_release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
 
-      # - name: Install Scarb
-      #   run: |
-      #       git clone https://github.com/software-mansion/scarb.git
-      #       cd scarb
-      #       git checkout 055a9854905ddc0882fe22a67fe04a9702084601
-      #       cargo build --release
-      #       echo "$GITHUB_WORKSPACE/scarb/target/release" >> $GITHUB_PATH
-
-      - uses: software-mansion/setup-scarb@v1
-        with:
-          scarb-version: "2.7.0"
+      - name: Build Cairo
+        run: |
+            git clone https://github.com/starkware-libs/cairo.git
+            cd cairo
+            git checkout v2.7.1
+            cargo build --release
+            echo "$GITHUB_WORKSPACE/cairo/target/release" >> $GITHUB_PATH
 
       - name: Test
-        run: scarb test
+        run: cairo-test .
+
+  current_main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Build Cairo
+        run: |
+            git clone https://github.com/starkware-libs/cairo.git
+            cd cairo
+            cargo build --release
+            echo "$GITHUB_WORKSPACE/cairo/target/release" >> $GITHUB_PATH
+
+      - name: Test
+        run: cairo-test .      
