@@ -2,5 +2,35 @@
 version = 1
 
 [[package]]
-name = "hello_world"
+name = "alexandria_data_structures"
 version = "0.1.0"
+
+[[package]]
+name = "contracts"
+version = "0.1.0"
+dependencies = [
+ "evm",
+ "openzeppelin",
+ "utils",
+]
+
+[[package]]
+name = "evm"
+version = "0.1.0"
+dependencies = [
+ "contracts",
+ "openzeppelin",
+ "utils",
+]
+
+[[package]]
+name = "openzeppelin"
+version = "0.1.0"
+
+[[package]]
+name = "utils"
+version = "0.1.0"
+dependencies = [
+ "alexandria_data_structures",
+ "evm",
+]

@@ -9,24 +9,37 @@ on:
 
 
 jobs:
-  prepare:
+  current_release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-
-      # - name: Install Scarb
-      #   run: |
-      #       git clone https://github.com/software-mansion/scarb.git
-      #       cd scarb
-      #       git checkout 055a9854905ddc0882fe22a67fe04a9702084601
-      #       cargo build --release
-      #       echo "$GITHUB_WORKSPACE/scarb/target/release" >> $GITHUB_PATH
 
       - uses: software-mansion/setup-scarb@v1
         with:
-          scarb-version: "2.7.0"
+          scarb-version: "2.7.1"
 
       - name: Test
-        run: scarb test
+        run: scarb build -p contracts
+
+  current_main:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Clone Scarb
+        run: git clone https://github.com/software-mansion/scarb.git
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "scarb"
+
+      - name: Install Scarb
+        run: |
+            cd scarb
+            cargo build --release
+            echo "$GITHUB_WORKSPACE/scarb/target/release" >> $GITHUB_PATH
+
+      - name: Test
+        run: scarb build -p contracts
