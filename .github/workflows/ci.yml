@@ -7,17 +7,22 @@ on:
   pull_request:
   merge_group:
 
-
 jobs:
   test-run:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Change lock file
-        run: echo "# unfixed" >> lockfile
-      - uses: software-mansion/setup-scarb@main
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Clone Scarb
+        run: git clone https://github.com/software-mansion/scarb.git
+      - uses: Swatinem/rust-cache@v2
         with:
-          scarb-version: "2.8.4"
-          scarb-lock: "./some/sub/dir/Scarb.lock"
-      - name: Test
-        run: scarb build
+          workspaces: "scarb -> target"
+      - name: Build Scarb
+        run: |
+          cd scarb 
+          git checkout maciektr/proc-macro-enable-v1-tests
+          cargo build -p scarb --profile=ci
+          cd ..
+      - run: |
+          ./scarb/target/ci/scarb build --test
