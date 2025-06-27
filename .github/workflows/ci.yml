@@ -8,15 +8,10 @@ on:
   merge_group:
 
 jobs:
-  bench:
+  prepare:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Install hyperfine
-        run: |
-          wget https://github.com/sharkdp/hyperfine/releases/download/v1.19.0/hyperfine_1.19.0_amd64.deb
-          sudo dpkg -i hyperfine_1.19.0_amd64.deb
       - name: Clone Scarb
         run: git clone https://github.com/software-mansion/scarb.git
       - uses: Swatinem/rust-cache@v2
@@ -27,31 +22,68 @@ jobs:
           cd scarb 
           cargo build -p scarb --profile=ci
           cd ..
+      - uses: actions/upload-artifact@v4
+        with:
+          name: built-scarb
+          path: scarb/target/ci/scarb
+
+  bench-part:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        threads: [1, 2, 4, 6]
+    name: Bench with threads ${{ matrix.threads }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: built-scarb
+      - name: Extract Scarb
+        run: |
+          chmod +x scarb
+      - name: Install hyperfine
+        run: |
+          wget https://github.com/sharkdp/hyperfine/releases/download/v1.19.0/hyperfine_1.19.0_amd64.deb
+          sudo dpkg -i hyperfine_1.19.0_amd64.deb
+      - name: Clone OZ
+        run: git clone https://github.com/OpenZeppelin/cairo-contracts.git
+      - name: Clone Staking
+        run: git clone https://github.com/starkware-libs/starknet-staking.git
+      - name: Threads
+        run: echo "Threads = ${{ matrix.threads }}"
+      - name: Bench OZ
+        run: |
+          hyperfine --warmup 1 --runs 2 -- 'RAYON_NUM_THREADS=${{ matrix.threads }} ./scarb --manifest-path=./cairo-contracts/Scarb.toml build --test --no-warnings --workspace'
+      - name: Bench Staking
+        run: |
+          hyperfine --warmup 1 --runs 7 -- 'RAYON_NUM_THREADS=${{ matrix.threads }} ./scarb --manifest-path=./starknet-staking/Scarb.toml build --test --no-warnings --workspace'
+
+  bench-default:
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+    name: Bench with default
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: built-scarb
+      - name: Extract Scarb
+        run: |
+          chmod +x scarb
+          echo "$GITHUB_WORKSPACE/scarb" >> $GITHUB_PATH
+      - name: Install hyperfine
+        run: |
+          wget https://github.com/sharkdp/hyperfine/releases/download/v1.19.0/hyperfine_1.19.0_amd64.deb
+          sudo dpkg -i hyperfine_1.19.0_amd64.deb
       - name: Clone OZ
         run: git clone https://github.com/OpenZeppelin/cairo-contracts.git
       - name: Clone Staking
         run: git clone https://github.com/starkware-libs/starknet-staking.git
       - name: Bench OZ
         run: |
-          echo "Default"
-          hyperfine --warmup 1 --runs 2 -- './scarb/target/ci/scarb --manifest-path=./cairo-contracts/Scarb.toml build --test --no-warnings --workspace'
-          echo "Threads = 1"
-          hyperfine --warmup 0 --runs 2 -- 'RAYON_NUM_THREADS=1 ./scarb/target/ci/scarb --manifest-path=./cairo-contracts/Scarb.toml build --test --no-warnings --workspace'
-          echo "Threads = 2"
-          hyperfine --warmup 0 --runs 2 -- 'RAYON_NUM_THREADS=2 ./scarb/target/ci/scarb --manifest-path=./cairo-contracts/Scarb.toml build --test --no-warnings --workspace'
-          echo "Threads = 4"
-          hyperfine --warmup 0 --runs 2 -- 'RAYON_NUM_THREADS=2 ./scarb/target/ci/scarb --manifest-path=./cairo-contracts/Scarb.toml build --test --no-warnings --workspace'
-          echo "Threads = 6"
-          hyperfine --warmup 0 --runs 2 -- 'RAYON_NUM_THREADS=2 ./scarb/target/ci/scarb --manifest-path=./cairo-contracts/Scarb.toml build --test --no-warnings --workspace'
+          hyperfine --warmup 1 --runs 2 -- './scarb --manifest-path=./cairo-contracts/Scarb.toml build --test --no-warnings --workspace'
       - name: Bench Staking
         run: |
-          echo "Default"
-          hyperfine --warmup 1 --runs 2 -- './scarb/target/ci/scarb --manifest-path=./starknet-staking/Scarb.toml build --test --no-warnings --workspace'
-          echo "Threads = 1"
-          hyperfine --warmup 0 --runs 2 -- 'RAYON_NUM_THREADS=1 ./scarb/target/ci/scarb --manifest-path=./starknet-staking/Scarb.toml build --test --no-warnings --workspace'
-          echo "Threads = 2"
-          hyperfine --warmup 0 --runs 2 -- 'RAYON_NUM_THREADS=2 ./scarb/target/ci/scarb --manifest-path=./starknet-staking/Scarb.toml build --test --no-warnings --workspace'
-          echo "Threads = 4"
-          hyperfine --warmup 0 --runs 2 -- 'RAYON_NUM_THREADS=2 ./scarb/target/ci/scarb --manifest-path=./starknet-staking/Scarb.toml build --test --no-warnings --workspace'
-          echo "Threads = 6"
-          hyperfine --warmup 0 --runs 2 -- 'RAYON_NUM_THREADS=2 ./scarb/target/ci/scarb --manifest-path=./starknet-staking/Scarb.toml build --test --no-warnings --workspace'
+          hyperfine --warmup 1 --runs 7 -- './scarb --manifest-path=./starknet-staking/Scarb.toml build --test --no-warnings --workspace'
